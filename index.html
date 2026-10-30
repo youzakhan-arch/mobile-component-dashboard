@@ -1,0 +1,1668 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Mobile component metrics</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #647282;
+      --line: #e2e8ee;
+      --surface: #ffffff;
+      --canvas: #f5f7f9;
+      --blue: #175cd3;
+      --blue-soft: #eff6ff;
+      --green: #157347;
+      --green-soft: #eaf7ef;
+      --amber: #9a5b00;
+      --amber-soft: #fff5df;
+      --red: #a63c36;
+      --red-soft: #fff0ee;
+      --slate-soft: #eef2f6;
+      --shadow: 0 1px 2px rgb(16 24 40 / 5%), 0 8px 24px rgb(16 24 40 / 4%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      line-height: 1.45;
+    }
+
+    a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    a:hover { color: #0b438f; }
+
+    .page {
+      width: min(1720px, 100%);
+      margin: 0 auto;
+      padding: 24px clamp(16px, 3vw, 40px) 48px;
+    }
+
+    .page > header { margin: 4px 0 22px; }
+
+    h1 {
+      margin: 0;
+      font-weight: 720;
+      font-size: clamp(25px, 2.5vw, 34px);
+      line-height: 1.12;
+      letter-spacing: -.035em;
+    }
+
+    .intro {
+      max-width: 930px;
+      margin: 7px 0 0;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    .pill, .badge {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      gap: 6px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+
+    .pill {
+      max-width: 100%;
+      color: #475569;
+      background: var(--slate-soft);
+      border-color: #e1e7ed;
+      white-space: normal;
+    }
+    .badge.complete, .badge.yes { color: var(--green); background: var(--green-soft); border-color: #cbe8d5; }
+    .badge.progress { color: #76500a; background: var(--amber-soft); border-color: #f4dfae; }
+    .badge.high { color: #8e3f00; background: #fff0e3; border-color: #f7d5b8; }
+    .badge.medium { color: #76500a; background: var(--amber-soft); border-color: #f4dfae; }
+    .badge.low { color: #596676; background: var(--slate-soft); border-color: #e1e7ed; }
+    .badge.not-listed { color: #596676; background: #f5f6f7; border-color: #e3e7eb; }
+    .badge.unknown { color: #76500a; background: #fff8e9; border-color: #f3dfb2; }
+    .badge.no { color: #596676; background: var(--slate-soft); border-color: #e1e7ed; }
+    .badge.coverage { color: #174ea6; background: var(--blue-soft); border-color: #d3e2fb; }
+
+    .section-title {
+      margin: 22px 0 10px;
+      font-size: 18px;
+      letter-spacing: -.01em;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, .85fr) minmax(0, 2.1fr) minmax(0, 1.1fr);
+      gap: 12px;
+    }
+
+    .metric-group {
+      min-width: 0;
+      border: 1px solid #e0e6ed;
+      border-radius: 13px;
+      padding: 14px 15px 12px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgb(16 24 40 / 4%);
+    }
+
+    .metric-group h3 {
+      margin: 0 0 9px;
+      color: #667487;
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: .065em;
+      text-transform: uppercase;
+    }
+
+    .metric-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .metric-list.single { grid-template-columns: 1fr; }
+    .metric-list.apps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .metric {
+      min-width: 0;
+      border: 1px solid #edf0f4;
+      border-radius: 9px;
+      padding: 8px 9px;
+      background: #fbfcfd;
+    }
+
+    .metric .value {
+      display: block;
+      color: #182638;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 25px;
+      font-weight: 760;
+      letter-spacing: -.045em;
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-group:first-child .metric .value { color: #176b4d; }
+    .metric-group:nth-child(2) .metric .value { color: #5746b5; }
+    .metric-group:nth-child(4) .metric .value { color: #a45b0a; }
+
+    .metric .label {
+      display: block;
+      margin-top: 4px;
+      color: #435166;
+      font-size: 10px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    .metric .sub {
+      display: block;
+      margin-top: 2px;
+      color: #738091;
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .visualizations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 15px; }
+    .viz-card { min-width: 0; border: 1px solid #dfe5ec; border-radius: 12px; padding: 15px 16px; background: #fff; box-shadow: 0 2px 8px rgb(16 24 40 / 3%); }
+    .viz-card h3 { margin: 0; font-size: 14px; letter-spacing: -.01em; }
+    .viz-subtitle { margin: 3px 0 12px; color: var(--muted); font-size: 11px; }
+    .viz-row { display: grid; grid-template-columns: minmax(115px, 1.05fr) minmax(80px, 2fr) auto; gap: 10px; align-items: center; margin: 9px 0; }
+    .viz-label { color: #3f4d5f; font-size: 11px; font-weight: 650; }
+    .viz-value { color: #34445a; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .viz-track { height: 9px; overflow: hidden; border-radius: 99px; background: #edf1f5; }
+    .viz-fill { height: 100%; min-width: 0; border-radius: inherit; background: #3276df; }
+    .viz-fill.complete { background: #16835d; }
+    .viz-fill.progress { background: #df9b26; }
+    .viz-fill.implementation { background: #3276df; }
+    .viz-fill.adoption { background: #14a27a; }
+    .viz-fill.shared { background: #6856c8; }
+    .viz-fill.unknown { background: #d78a22; }
+    .viz-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 10px; }
+    .viz-key { display: inline-flex; align-items: center; gap: 5px; }
+    .viz-swatch { width: 8px; height: 8px; border-radius: 2px; background: #3276df; }
+    .viz-swatch.adoption { background: #14a27a; }
+    .viz-swatch.complete { background: #16835d; }
+    .viz-swatch.progress { background: #df9b26; }
+    .viz-swatch.shared { background: #6856c8; }
+    .viz-swatch.unknown { background: #d78a22; }
+
+    .code-only-row td:first-child { background: #f5f9ff; }
+
+    .scope-callout {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 11px;
+      align-items: start;
+      margin-top: 12px;
+      border: 1px solid #f0dfb6;
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #614d27;
+      background: #fffaf0;
+      font-size: 13px;
+    }
+
+    .scope-callout strong { color: #483916; }
+    .scope-callout .mark { font-size: 17px; line-height: 1.2; }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.7fr) repeat(3, minmax(145px, .7fr));
+      gap: 10px;
+      margin: 14px 0 12px;
+      border: 1px solid #e1e7ef;
+      border-radius: 14px;
+      padding: 14px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgb(16 24 40 / 3%);
+    }
+
+    label.filter {
+      display: grid;
+      gap: 5px;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid #d5dde7;
+      border-radius: 9px;
+      padding: 9px 11px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+      font-size: 13px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    select { height: 44px; }
+
+    input:focus, select:focus {
+      border-color: #8eb6f5;
+      box-shadow: 0 0 0 3px rgb(157 194 255 / 28%);
+      outline: 0;
+    }
+
+    a:focus-visible, summary:focus-visible {
+      outline: 3px solid #9dc2ff;
+      outline-offset: 2px;
+    }
+
+    .result-line {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 8px 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    #result-count {
+      border-radius: 999px;
+      padding: 4px 9px;
+      color: #34445a;
+      background: #eaf0f7;
+      font-weight: 700;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: min(72vh, 880px);
+      border: 1px solid #dfe5ec;
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: 0 4px 16px rgb(16 24 40 / 5%);
+      scrollbar-color: #aebaca #f1f3f5;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1580px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 12px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      z-index: 2;
+      top: 0;
+      color: #3b4a5e;
+      background: #f2f5f9;
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .055em;
+      text-transform: uppercase;
+    }
+
+    th:first-child {
+      left: 0;
+      z-index: 4;
+      background: #eef2f7;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #f8faff; }
+    td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      min-width: 175px;
+      border-right: 1px solid #edf0f4;
+      background: #fff;
+      font-weight: 700;
+    }
+    tbody tr:hover td:first-child { background: #f8faff; }
+    .component-name { display: block; font-size: 13px; }
+    .component-note { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; font-weight: 500; }
+    .cell-main { display: block; max-width: 235px; line-height: 1.4; }
+    .cell-sub { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.35; }
+    .priority-cell { display: grid; justify-items: start; gap: 5px; }
+    .score { color: #334155; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .app-cell { min-width: 195px; }
+    .app-status { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+    .app-text { max-width: 250px; color: #465466; line-height: 1.4; }
+    .owner-cell { min-width: 190px; color: #465466; }
+    .source-cell { min-width: 190px; color: #465466; }
+    .evidence-cell { min-width: 140px; }
+
+    details.row-detail {
+      max-width: 370px;
+      color: #475569;
+    }
+
+    details.row-detail summary {
+      width: fit-content;
+      cursor: pointer;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .detail-body {
+      position: absolute;
+      z-index: 3;
+      width: min(600px, calc(100vw - 32px));
+      max-height: 68vh;
+      overflow: auto;
+      margin-top: 7px;
+      border: 1px solid #d7dfe7;
+      border-radius: 10px;
+      padding: 14px;
+      background: #fff;
+      box-shadow: 0 12px 36px rgb(15 23 42 / 18%);
+      white-space: normal;
+    }
+
+    .detail-body h3 { margin: 0 0 6px; color: var(--ink); font-size: 13px; }
+    .detail-body p { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
+    .confidence { display: inline-block; margin-bottom: 9px; color: #516173; font-size: 10px; font-weight: 750; }
+    .evidence-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .evidence-list li { border-top: 1px solid #edf0f3; padding-top: 7px; font-size: 11px; }
+    .evidence-list a { font-weight: 700; }
+    .evidence-list span { display: block; margin-top: 3px; color: #647282; }
+
+    .method {
+      margin-top: 26px;
+      border: 1px solid #e1e7ef;
+      border-radius: 14px;
+      padding: 20px 22px;
+      background: var(--surface);
+      box-shadow: 0 2px 8px rgb(16 24 40 / 3%);
+    }
+
+    .method h2 { margin: 0 0 10px; font-size: 16px; }
+    .method p { margin: 7px 0; color: #4d5a69; font-size: 12px; }
+    .method ul { margin: 8px 0 0; padding-left: 18px; color: #4d5a69; font-size: 12px; }
+    .method li { margin: 5px 0; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+    .empty {
+      display: none;
+      padding: 26px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty p { margin: 0 0 10px; }
+
+    .clear-filters {
+      min-height: 44px;
+      border: 1px solid #cbd5df;
+      border-radius: 8px;
+      padding: 8px 13px;
+      color: #174ea6;
+      background: #fff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .clear-filters:hover { background: #f3f7fd; }
+    .clear-filters:focus-visible { outline: 3px solid #9dc2ff; outline-offset: 2px; }
+
+    footer {
+      margin-top: 14px;
+      color: #7a8795;
+      font-size: 10px;
+    }
+
+    .app-code-refs { display: grid; gap: 5px; margin: 7px 0; padding: 7px 0; border-top: 1px solid #edf0f4; }
+    .app-code-ref { display: block; font-size: 10px; line-height: 1.4; }
+    .app-code-ref a { font-weight: 700; }
+    .app-code-ref span { display: block; margin-top: 2px; color: var(--muted); font-weight: 400; }
+    .code-ref-label { margin-bottom: 1px; color: #667487; font-size: 9px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+    .table-scope { margin: -5px 0 10px; color: var(--muted); font-size: 12px; }
+    .telemetry { margin-bottom: 18px; }
+
+    @media (max-width: 1100px) {
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filters { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .page { padding-top: 20px; }
+      .intro { font-size: 14px; }
+      .metrics { grid-template-columns: 1fr; }
+      .metric-group { padding: 13px; }
+      .metric-list.apps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric .value { font-size: 20px; }
+      .filters { grid-template-columns: 1fr; }
+      .visualizations { grid-template-columns: 1fr; }
+      .scope-callout { grid-template-columns: 1fr; gap: 2px; }
+      .table-wrap { max-height: 70vh; border-radius: 11px; }
+      .method { padding: 17px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>Mobile component metrics</h1>
+      <p class="intro">Figma status, repository implementation, and verified product use are shown separately · Snapshot 29 Oct 2026</p>
+    </header>
+
+    <section aria-label="Component metrics">
+      <div class="metrics" id="metrics"></div>
+      <div class="visualizations" id="visualizations" aria-label="Verified design and repository evidence charts"></div>
+      <div class="scope-callout">
+        <span class="mark" aria-hidden="true">!</span>
+        <div>
+          <strong>One Figma entry; separate code findings.</strong> “App Header and bottom sheet” keeps its
+          provisional score of 90. Code shows separate header/toolbar and bottom-sheet patterns, bringing the code
+          concept count to 20. The Figma in-progress count remains 8.
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="table-heading">
+      <h2 class="section-title" id="table-heading">All component findings</h2>
+      <p class="table-scope" id="table-scope"></p>
+      <div class="filters" role="search" aria-label="Search and filter entries">
+        <label class="filter">Search
+          <input id="search" type="search" placeholder="Names, source paths, or owners" autocomplete="off">
+        </label>
+        <label class="filter">Design status
+          <select id="status-filter">
+            <option value="">All statuses</option>
+            <option value="Complete">Complete</option>
+            <option value="In progress">Not completed (in progress)</option>
+            <option value="Not in supplied Figma list">Not in supplied Figma list</option>
+          </select>
+        </label>
+        <label class="filter">Priority
+          <select id="priority-filter">
+            <option value="">All priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+            <option value="Not scored">Not scored</option>
+          </select>
+        </label>
+        <label class="filter">Product coverage
+          <select id="coverage-filter">
+            <option value="">All coverage</option>
+            <option value="Both">Both</option>
+            <option value="Driver">Driver</option>
+            <option value="Fleet">Fleet</option>
+            <option value="Not verified">Not verified</option>
+          </select>
+        </label>
+      </div>
+      <div class="result-line">
+        <span id="result-count" aria-live="polite"></span>
+        <span>Coverage means verified feature use, not shared-library use.</span>
+        <button class="clear-filters" id="clear-filters" type="button" hidden>Clear filters</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Component</th>
+              <th scope="col">Figma status</th>
+              <th scope="col">Provisional priority</th>
+              <th scope="col">Shared design system</th>
+              <th scope="col">Android Driver</th>
+              <th scope="col">iOS Driver</th>
+              <th scope="col">Android Fleet</th>
+              <th scope="col">Product coverage</th>
+              <th scope="col">Owner / team</th>
+              <th scope="col">Pattern source</th>
+              <th scope="col">Details</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty" id="empty">
+          <p id="empty-message">No entries match these filters.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="method" aria-labelledby="method-heading">
+      <h2 id="method-heading">Method and caveats</h2>
+      <p><strong>Design status:</strong> The 19 component entries, statuses, and provisional scores come from the supplied list.
+        The Driver and Fleet screen sets are linked for context and were marked incomplete by the user; screen-level incompleteness
+        is not assigned as a component-level status to newly discovered code rows.</p>
+      <p><strong>Shared library:</strong> Counts come from the Motive Design System 1.0.0 inventories in each repository guide.
+        We did not audit the package source. “Not listed” applies to release 1.0.0; a newer API may exist.</p>
+      <p><strong>Implementation:</strong> Counts entries with a named local implementation or a shared API integrated in the app.
+        It does not show product use.</p>
+      <p><strong>Product use:</strong> Counts entries with source or guide evidence of a feature call site for a local, shared,
+        or platform-native pattern. Each app count uses 19 entries; counts are not percentages and do not measure screen coverage.
+        The combined header/bottom-sheet entry counts only when both patterns are verified. Otherwise, it is unknown.</p>
+      <p><strong>Unknowns:</strong> “Not verified” means evidence is insufficient, not that a component is absent.
+        The 15/57 total counts app-entry checks with unknown product use; 10/19 is the number of entries with at least one unknown.</p>
+      <p><strong>Code-only rows:</strong> Each row represents an app-specific component definition or reusable UI pattern outside the supplied list.
+        Rows are not merged across platforms, even when names or behaviors are similar. The audit prioritizes named reusable controls,
+        list items, selection/search patterns, and common states; it does not count every screen or one-off layout.
+        “Not in supplied Figma list” does not mean absent from Figma, incomplete, or unused.</p>
+      <p><strong>Telemetry:</strong> Usage and outcome metrics must remain separate from Figma status, code existence, and code-based adoption.
+        No Snowflake tables, time window, or app/platform coverage were verified in this session.</p>
+      <p><strong>Telemetry:</strong> No Snowflake query or event schema was reviewed. Component-level use/outcomes are not assessed;
+        events without explicit component or interaction identity must be labeled “not instrumented.” Telemetry remains separate
+        from code existence, adoption, and Figma status.</p>
+      <p><strong>Dates and checks:</strong> Android Driver and Fleet were searched at the linked local checkout commits;
+        iOS Driver source was searched through GitHub at the linked commit because no local checkout was available.
+        Migration-guide totals are date-bound and were not treated as fresh code census counts. No app build or tests were run.</p>
+      <div class="legend" aria-label="Evidence legend">
+        <span class="badge yes">Code exists or is used</span>
+        <span class="badge unknown">Not verified</span>
+        <span class="badge not-listed">Not listed in release 1.0.0</span>
+        <span class="badge progress">Design in progress</span>
+        <span class="badge high">Provisional score</span>
+      </div>
+    </section>
+    <footer>
+      Evidence links open the reviewed repository revisions. GitHub access is required.
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+    const REPOS = {
+      ad: {
+        label: "Android Driver",
+        url: "https://github.com/KeepTruckin/mobile_driver_app_android",
+        head: "0f514079efdb1316347642e8a21d09fd9f922241",
+        guide: "40a426a7daeadc337ca48420f657e84f44a2cd4f",
+        guidePath: "docs/design-system/COMPONENT_MIGRATION_GUIDE.md"
+      },
+      ios: {
+        label: "iOS Driver",
+        url: "https://github.com/KeepTruckin/mobile_driver_app_ios",
+        head: "8f64cc19147c43bb953907718167a281ed5fb3f7",
+        guide: "35c8fcc990329feee2fcfa88c4239e300603852a",
+        guidePath: "docs/design-system/COMPONENT_MIGRATION_GUIDE.md"
+      },
+      fleet: {
+        label: "Android Fleet",
+        url: "https://github.com/KeepTruckin/mobile-fleet-app",
+        head: "bc6007dd7ead221a6f1bfd713c1af99e9cda7305",
+        guide: "ebe57679bc5a1bcfa9c8c61530825ec977d56e8b",
+        guidePath: "docs/design-system/android/COMPONENT_MIGRATION_GUIDE.md"
+      }
+    };
+
+    const doc = (repo, line, title, note) => ({
+      repo, kind: "guide", title, note,
+      href: `${REPOS[repo].url}/blob/${REPOS[repo].guide}/${REPOS[repo].guidePath}#L${line}`
+    });
+    const code = (repo, path, line, title, note) => ({
+      repo, kind: "code", path, line, title, note,
+      href: `${REPOS[repo].url}/blob/${REPOS[repo].head}/${encodeURI(path)}${line ? `#L${line}` : ""}`
+    });
+    const ownerRef = (repo, path, line, title, note) => ({
+      repo, kind: "owner", path, line, title, note,
+      href: `${REPOS[repo].url}/blob/${REPOS[repo].head}/${encodeURI(path)}#L${line}`
+    });
+
+    const shared = {
+      spinner: "BaseSpinner",
+      alert: "BaseAlert",
+      icon: "BaseIcon",
+      input: "BaseTextField",
+      signature: "BaseSignatureField",
+      split: "BaseSegmentedTextField",
+      note: "BaseNoteField",
+      password: "BasePasswordField",
+      chip: "BaseChip",
+      tag: "BaseTag",
+      avatar: "BaseAvatar",
+      buttons: "BaseButton"
+    };
+
+    const sharedRefs = [
+      doc("ad", 145, "Android Driver · DS 1.0.0 inventory", "Lists the released Base* component set; its guide dates the inventory to the 1.0.0 tag."),
+      doc("ios", 58, "iOS Driver · DS 1.0.0 inventory", "Lists the SwiftUI Base* component set."),
+      doc("fleet", 150, "Android Fleet · DS 1.0.0 inventory", "Lists the released Base* component set.")
+    ];
+
+    const rows = [
+      {
+        id: "spinner", name: "Spinner", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseSpinner API is documented; local/native loaders remain in the apps.",
+        why: "A consistent loading cue can reduce the fragmented loading patterns documented in Driver Android and make waiting states easier to recognize. Value statement is analysis grounded in the local loader inventory.",
+        confidence: "Medium — component API and local equivalents are documented; usage totals are date-bound and not re-measured.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "Local shared CircularLoader; guide reports 11 of ~120 loading sites at its measured revision. BaseSpinner is a migration target, not proof of BaseSpinner adoption." },
+          ios: { impl: true, adopted: true, text: "UIActivityIndicatorView and SwiftUI ProgressView are used; guide reports 50 and 9 occurrences. No BaseSpinner product call was found in the reviewed source." },
+          fleet: { impl: true, adopted: true, text: "Uses raw CircularProgressIndicator and XML ProgressBar; guide reports 52 and 12 occurrences. No shared local loader composable is listed." }
+        },
+        refs: [
+          doc("ad", 258, "Android Driver · loader inventory", "CircularLoader plus bespoke loaders; counts are historical guide evidence."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/loader/CircularLoader.kt", null, "Android Driver · CircularLoader source", "A reusable local loader implementation."),
+          doc("ios", 87, "iOS Driver · spinner mapping", "Documents the app's existing UIKit and SwiftUI loading controls."),
+          doc("fleet", 255, "Android Fleet · spinner mapping", "Documents raw platform progress controls and no shared loader composable.")
+        ]
+      },
+      {
+        id: "alert", name: "Alert", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseAlert API documented; local alert/banner/snackbar implementations are also present.",
+        why: "A shared alert vocabulary can reduce parallel banner/toast systems and make error, warning, and success states more consistent. Value statement is analysis; the local variants are documented.",
+        confidence: "High — direct definitions and feature call sites were verified in both Driver apps; Fleet evidence remains guide-based.",
+        apps: {
+         ad: { impl: true, adopted: true, text: "The local Alert composable supports banner, inline, and toast states. ELD lock-screen code uses its toast state." },
+         ios: { impl: true, adopted: true, text: "InlineAlertView is a local UIKit view. EgaLookupVC shows it for errors and hides it when the user edits or submits." },
+          fleet: { impl: true, adopted: true, text: "Local error/network banners and SuccessSnackbar are documented with occurrences; they are not evidence of BaseAlert adoption." }
+        },
+        refs: [
+          doc("ad", 280, "Android Driver · component mapping", "Maps local Alert to BaseAlert and reports sites."),
+         code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/alert/Alert.kt", 34, "Android Driver · Alert definition", "Defines banner, inline, and toast variants."),
+         code("ad", "keeptruckin/modules/feature/eld/lock/ui/src/main/java/com/keeptruckin/eldLock/ui/screen/Screen.kt", 159, "Android Driver · Alert in ELD lock screen", "Feature code renders the toast alert at two call sites."),
+         doc("ios", 111, "iOS Driver · alert/banner/toast mapping", "Lists current app components and their BaseAlert targets."),
+         code("ios", "KeepTruckin/UI/Common/Components/InlineAlert/InlineAlertView.swift", 7, "iOS Driver · InlineAlertView definition", "Defines the local UIKit alert view."),
+         code("ios", "KeepTruckin/Feature/EGA/UI/ViewControllers/EgaLookupVC.swift", 78, "iOS Driver · Alert in EGA lookup", "Feature code shows the alert for errors and hides it after edits or submission."),
+         doc("fleet", 319, "Android Fleet · alert mapping", "Maps Fleet banner and snackbar implementations to BaseAlert.")
+        ]
+      },
+      {
+        id: "icon", name: "Icon", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseIcon/MotiveIcons documented; the apps also use platform assets or local icon catalogs.",
+        why: "A canonical icon API can improve consistency, tinting, accessibility descriptions, and asset ownership. Value statement is analysis; current use of BaseIcon is not established by raw asset usage.",
+        confidence: "Medium — docs explicitly describe icon strategy; a reusable BaseIcon product call was not verified.",
+        apps: {
+          ad: { impl: true, adopted: false, text: "Guide says there is no icon wrapper composable or icon-name enum; product call-sites use raw painterResource/ImageVector. BaseIcon is available as a shared API, but its adoption was not established." },
+          ios: { impl: true, adopted: true, text: "The local Icon enum (541 cases) is used through UIImage; BaseIcon is SwiftUI-only and the guide says UIKit keeps app assets." },
+          fleet: { impl: true, adopted: false, text: "Guide says there is no icon wrapper or enum; call-sites use raw painterResource/ImageVector. BaseIcon availability does not prove adoption." }
+        },
+        refs: [
+          doc("ad", 241, "Android Driver · BaseIcon mapping", "Documents the absence of a local wrapper and raw icon usage."),
+          doc("ios", 80, "iOS Driver · BaseIcon mapping", "Documents the app Icon enum and UIKit/SwiftUI boundary."),
+          doc("ios", 217, "iOS Driver · icon constraints", "Explains MotiveIcons image type and UIKit limitation."),
+          doc("fleet", 236, "Android Fleet · BaseIcon mapping", "Documents raw icons and the missing local wrapper.")
+        ]
+      },
+      {
+        id: "input", name: "Input", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseTextField documented; local form-field libraries and native text controls are in use.",
+        why: "A shared base field can standardize labels, validation, focus, and accessibility across forms. Value statement is analysis supported by the documented multi-library field surface.",
+        confidence: "Medium — local field libraries and historical call-site counts are documented; no fresh count was run.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "Sixteen shared local field components are documented (~155 sites), including TextInputComponent and DropDownField. BaseTextField is a migration target." },
+          ios: { impl: true, adopted: true, text: "UIKit UITextField, SwiftUI TextField, and FormEntry/CommonForm are documented as current product inputs; BaseTextField is a target." },
+          fleet: { impl: true, adopted: true, text: "SearchField plus raw TextField-family controls are documented. The guide says Fleet has no broad shared field library beyond named exceptions." }
+        },
+        refs: [
+          doc("ad", 365, "Android Driver · forms inventory", "Lists shared field components and measured occurrences."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/inputfields/SelectionFieldComponent.kt", 1, "Android Driver · field source", "Source in the shared local view-components module."),
+          doc("ios", 131, "iOS Driver · forms and text input", "Documents current UIKit/SwiftUI fields and DS mapping."),
+          doc("fleet", 275, "Android Fleet · component mapping", "Lists SearchField and the Fleet-side text-input mapping."),
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/textfield/SearchField.kt", null, "Android Fleet · SearchField definition", "Reusable local search field implementation."),
+          code("fleet", "android/kt_fleet/devices-install-v2/src/main/java/com/keeptruckin/android/fleet/devicesinstallv2/screens/step/cablecheck/screen/VehicleAttributeSelectionScreen.kt", null, "Android Fleet · SearchField feature use", "Vehicle selection screen constructs SearchField."),
+          code("fleet", "android/kt_fleet/devices-install-v2/src/main/java/com/keeptruckin/android/fleet/devicesinstallv2/screens/step/vehicleconfirm/SelectVehicleListScreen.kt", null, "Android Fleet · SearchField vehicle-list use", "Vehicle list screen constructs SearchField.")
+        ]
+      },
+      {
+        id: "signature", name: "Input - Signature", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseSignatureField documented; signature capture remains app-specific in some flows.",
+        why: "Reusable signature-field chrome can make capture affordances consistent while preserving app-specific capture and legal workflow behavior. Value statement is analysis.",
+        confidence: "Medium — local field definitions and app guide mappings are documented; Fleet adoption is not verified.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "SignatureHolderComponent is listed in the shared local field library (6 occurrences / 3 files in the dated guide); BaseSignatureField is the migration target." },
+          ios: { impl: true, adopted: true, text: "FormEntry SignatureComponent and NewSignatureVC are local; the guide cites ~126 signature references and says capture remains in the view controller." },
+          fleet: { impl: true, adopted: null, text: "BaseSignatureField is available in the documented shared API, but no Fleet feature adoption of a signature field was established in the reviewed evidence." }
+        },
+        refs: [
+          doc("ad", 367, "Android Driver · field inventory", "Lists SignatureHolderComponent and its guide-measured usage."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/inputfields/SignatureHolderComponent.kt", null, "Android Driver · SignatureHolderComponent source", "Local reusable signature field source."),
+          doc("ios", 135, "iOS Driver · signature mapping", "Maps local signature UI to BaseSignatureField."),
+          code("ios", "KeepTruckin/Feature/FormEntry/UI/UI/Components/Signature/SignatureComponent.swift", 13, "iOS Driver · SignatureComponent source", "Local form component definition."),
+          doc("fleet", 155, "Android Fleet · shared component inventory", "Confirms BaseSignatureField is in the shared API; not Fleet feature adoption.")
+        ]
+      },
+      {
+        id: "split", name: "Input - Split", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseSegmentedTextField documented. Local equivalence to the supplied Figma split variant is not established.",
+        why: "Split or segmented fields can keep related values and focus movement legible as one task. This value statement is analysis; parity with the named Figma variant is unverified.",
+        confidence: "Low — shared API name is documented, but no direct mapping from this Figma entry to app-local fields was verified.",
+        apps: {
+          ad: { impl: true, adopted: null, text: "BaseSegmentedTextField is available in the shared API; no exact local split-field adoption was established." },
+          ios: { impl: true, adopted: null, text: "The app has a TextFieldWithUnit component, but the reviewed evidence does not establish that it matches this Figma split variant." },
+          fleet: { impl: true, adopted: null, text: "BaseSegmentedTextField is available in the shared API; no Fleet product call-site was verified." }
+        },
+        refs: [
+          doc("ad", 186, "Android Driver · field API inventory", "Lists BaseSegmentedTextField in Motive DS 1.0.0."),
+          doc("ios", 64, "iOS Driver · shared API inventory", "Lists BaseSegmentedTextField."),
+          code("ios", "KeepTruckin/Feature/FormEntry/UI/UI/Components/TextFieldWithUnit/TextFieldWithUnitComponent.swift", 84, "iOS Driver · TextFieldWithUnit source", "A local multi-part field exists; equivalence is deliberately not inferred."),
+          doc("fleet", 159, "Android Fleet · shared API inventory", "Lists BaseSegmentedTextField; does not establish Fleet adoption.")
+        ]
+      },
+      {
+        id: "note", name: "Input - Note", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseNoteField documented; current note/paragraph fields remain local unless migrated.",
+        why: "A note field needs clear multi-line behavior and, where applicable, a character limit. A reusable version may reduce per-screen differences; analysis.",
+        confidence: "Medium — Android Driver documents a direct paragraph-field mapping; iOS/Fleet adoption is not established.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "ParagraphComponent (12 occurrences / 6 files in the dated inventory) maps to BaseNoteField." },
+          ios: { impl: true, adopted: null, text: "BaseNoteField is in the shared inventory; no exact local note-field product call was verified." },
+          fleet: { impl: true, adopted: null, text: "BaseNoteField is available in the shared inventory; Fleet's guide does not establish a note-field call-site." }
+        },
+        refs: [
+          doc("ad", 388, "Android Driver · form field migration", "Maps ParagraphComponent to BaseNoteField."),
+          doc("ios", 64, "iOS Driver · shared API inventory", "Lists BaseNoteField."),
+          doc("fleet", 159, "Android Fleet · shared API inventory", "Lists BaseNoteField; current app field inventory is separately described.")
+        ]
+      },
+      {
+        id: "password", name: "Input - Password", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BasePasswordField documented; platform-specific password forms remain local.",
+        why: "Consistent reveal/hide states, keyboard behavior, and masking reduce interaction variance on a sensitive field. Value statement is analysis.",
+        confidence: "Medium — local password component sources and shared API are documented; Fleet's Android adoption is unresolved.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "PasswordInputComponent is listed in the shared local field library (8 occurrences / 5 files in the dated guide); BasePasswordField is the migration target." },
+          ios: { impl: true, adopted: true, text: "A local FormEntry PasswordComponent exists and is used by password flows; the shared BasePasswordField is a target." },
+          fleet: { impl: true, adopted: null, text: "PasswordTextField exists in KMP commonMain, but Fleet's guide says Android adoption is blocked pending platform-side screen separation; BasePasswordField use is not verified." }
+        },
+        refs: [
+          doc("ad", 367, "Android Driver · password field inventory", "Lists PasswordInputComponent and guide-measured usage."),
+          code("ios", "KeepTruckin/Feature/FormEntry/UI/UI/Components/Password/PasswordComponent.swift", 33, "iOS Driver · PasswordComponent source", "Local password form component."),
+          doc("ios", 135, "iOS Driver · password field mapping", "Maps current fields to BasePasswordField."),
+          doc("fleet", 282, "Android Fleet · password mapping", "Documents the KMP PasswordTextField and Android integration caveat.")
+        ]
+      },
+      {
+        id: "chip", name: "Chip", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseChip documented; local filter/pill chips are not uniformly migrated.",
+        why: "Chips communicate compact choices or filters; one shared interaction pattern can reduce one-off behavior. Value statement is analysis.",
+        confidence: "Medium — local Android Driver and Fleet chip evidence exists; iOS feature adoption remains unverified.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "Guide lists 11 bespoke chips/pills and zero Material 3 chips; BaseChip is released and named as a migration target." },
+          ios: { impl: true, adopted: null, text: "BaseChip is available and the guide names filter chips as a target; no product call-site adopting BaseChip or a specific local chip was verified." },
+          fleet: { impl: true, adopted: true, text: "A feature-local CustomChip is defined and used in FleetViewListScreen; it is not the shared BaseChip." }
+        },
+        refs: [
+          doc("ad", 430, "Android Driver · chip migration", "Lists 11 bespoke chips/pills and the BaseChip target."),
+          doc("ios", 139, "iOS Driver · avatars, tags, chips", "Lists BaseChip as the DS mapping for filter chips."),
+          code("fleet", "android/kt_fleet/app/src/main/java/com/keeptruckin/android/fleet/ui/fleetview/CustomChip.kt", 31, "Android Fleet · CustomChip source", "Local feature chip declaration."),
+          code("fleet", "android/kt_fleet/app/src/main/java/com/keeptruckin/android/fleet/ui/fleetview/listview/FleetViewListScreen.kt", 799, "Android Fleet · CustomChip use", "Feature screen uses the local component.")
+        ]
+      },
+      {
+        id: "tag", name: "Tag", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseTag documented; app-local labels/status pills remain in use.",
+        why: "Consistent tag shape and contrast can make status easier to scan without inventing a separate pattern for each feature. Value statement is analysis.",
+        confidence: "Medium — Driver Android and iOS local equivalents are documented; Fleet equivalent is not verified.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "Local Label is mapped to BaseTag; the dated guide reports about 18 sites." },
+          ios: { impl: true, adopted: true, text: "The guide maps DVIR/fleet-card status pills and PerformanceHub custom tags to BaseTag." },
+          fleet: { impl: true, adopted: null, text: "BaseTag is available; Fleet's guide says there is no shared BaseTag/Chip and mentions feature-local pills without establishing a Tag call-site." }
+        },
+        refs: [
+          doc("ad", 280, "Android Driver · tag mapping", "Maps Label to BaseTag and reports sites."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/Label.kt", 21, "Android Driver · Label source", "Local reusable label composable."),
+          doc("ios", 139, "iOS Driver · tag mapping", "Maps app status pills and custom tags to BaseTag."),
+          doc("fleet", 288, "Android Fleet · chip/tag gap", "No shared tag/chip is listed; local pill adoption is not specified.")
+        ]
+      },
+      {
+        id: "avatar", name: "Avatar", figma: "Complete", score: null, band: "Not scored",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseAvatar documented; app-local custom View/profile patterns remain in use.",
+        why: "A shared avatar can make identity, initials, and inactive states consistent across people and teams. Value statement is analysis.",
+        confidence: "Medium — all three guides identify local equivalents; Fleet source confirms a custom View.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "Local AvatarView is documented with 34 Kotlin and 18 XML occurrences; no Compose version is listed in that guide." },
+          ios: { impl: true, adopted: true, text: "The guide maps Messaging profile circles to BaseAvatar; the cited app-specific profile-circle model is local." },
+          fleet: { impl: true, adopted: true, text: "Local AvatarView is documented with 12 XML sites; source is a custom Android View." }
+        },
+        refs: [
+          doc("ad", 285, "Android Driver · avatar mapping", "Documents the custom View and occurrence counts."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/custom/AvatarView.kt", null, "Android Driver · AvatarView source", "Local custom View implementation."),
+          doc("ios", 143, "iOS Driver · avatar mapping", "Maps Messaging profile circles to BaseAvatar."),
+          doc("fleet", 283, "Android Fleet · avatar mapping", "Documents Fleet's custom AvatarView and XML use."),
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/AvatarView.kt", 18, "Android Fleet · AvatarView source", "Local custom View declaration.")
+        ]
+      },
+      {
+        id: "buttons", name: "Buttons", figma: "In progress", score: 100, band: "High",
+        shared: "yes", owner: "Mobile Design System for the shared API; app-local owners not consistently verified.",
+        source: "Motive DS BaseButton documented; each app also has existing local/platform button patterns.",
+        why: "Reducing competing button styles can improve action hierarchy and reduce per-screen styling decisions. Driver Android documents 13 variants; iOS documents 28 style types; Fleet has duplicated button libraries.",
+        confidence: "Medium — local definitions and guide inventories are clear; adoption totals are date-bound.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "Local ActionButton is reported at 96 occurrences / 50 files, alongside other local/M3/XML button variants. This does not establish BaseButton adoption." },
+          ios: { impl: true, adopted: true, text: "KTButton/UIButton and 28 ButtonStyleProtocol types are documented; the guide reports 351 inits in 220 files." },
+          fleet: { impl: true, adopted: true, text: "PrimaryButton, SecondaryButton, OutlinedButton, and DestructiveActionButton exist in two app libraries; guide counts 111 PrimaryButton occurrences." }
+        },
+        refs: [
+          doc("ad", 280, "Android Driver · button mapping", "Maps ActionButton to BaseButton and documents competing styles."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/foundation/Buttons.kt", 60, "Android Driver · Buttons source", "Local shared button composables."),
+          doc("ios", 100, "iOS Driver · button migration", "Documents KTButton, UIButton, style types, and occurrence counts."),
+          code("ios", "KeepTruckin/UI/Common/Style/ButtonStyle.swift", 50, "iOS Driver · button styles", "Local style protocol."),
+          doc("fleet", 275, "Android Fleet · button mapping", "Documents duplicated button implementations and counts."),
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/buttons/PrimaryButton.kt", null, "Android Fleet · PrimaryButton source", "Local shared button definition.")
+        ]
+      },
+      {
+        id: "header-sheet", name: "App Header and bottom sheet", figma: "In progress", score: 90, band: "High",
+        shared: "not-listed", owner: "Unknown / not verified for app-local components; shared DS team owns upstream component roadmap per docs.",
+        source: "App-local toolbar/header and bottom-sheet patterns; no corresponding Base* component is listed in the reviewed 1.0.0 inventory.",
+        why: "Navigation context and modal actions are high-frequency structure; aligning them can reduce inconsistent entry/exit behavior. Value statement is analysis.",
+        confidence: "High for distinct local code findings in Android Driver and Fleet; iOS evidence is partial for the combined entry.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "Two distinct code findings: MotiveCenterTopAppBar/KTToolbar and separate bottom-sheet layouts/classes; guide reports 51 top-bar occurrences and multiple sheet implementations." },
+          ios: { impl: null, adopted: null, text: "BottomPanel and multiple bottom-sheet flows are present. An App Header mapping was not verified, so the combined entry is not counted as implemented or adopted." },
+          fleet: { impl: true, adopted: true, text: "Two distinct code findings: FleetToolbar (View and Compose) and MotiveBottomSheet/other bottom sheets; guide reports separate adoption totals." }
+        },
+        refs: [
+          doc("ad", 425, "Android Driver · missing upstream surfaces", "Lists separate Top app bars/nav and bottom-sheet implementations."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/topbar/CenteredTopAppBar.kt", null, "Android Driver · top app bar source", "Local top-bar implementation; path is a direct code finding."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/common/KTBaseModalBottomSheet.kt", 16, "Android Driver · modal bottom sheet source", "Separate local modal bottom sheet base class."),
+          doc("ios", 157, "iOS Driver · bottom sheet gap", "Identifies the local BottomPanel and says a shared equivalent is requested."),
+          code("ios", "KeepTruckin/UI/Common/BottomPanel/BottomPanelBaseWidget.swift", 8, "iOS Driver · BottomPanel source", "Local panel component; App Header remains unverified."),
+          doc("fleet", 384, "Android Fleet · upstream gaps", "Lists distinct bottom-sheet and top-toolbar implementations."),
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/FleetToolbar.kt", 51, "Android Fleet · FleetToolbar source", "Local toolbar declaration."),
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/compose/MotiveBottomSheet.kt", 54, "Android Fleet · MotiveBottomSheet source", "Separate local bottom-sheet declaration.")
+        ]
+      },
+      {
+        id: "code", name: "Input - Code", figma: "In progress", score: 86, band: "High",
+        shared: "not-listed", owner: "Unknown / not verified.",
+        source: "App-local PIN/OTP input patterns are verified in iOS Driver and Fleet Android; no shared DS code-field API was listed.",
+        why: "A dedicated code field can clarify fixed-length entry, focus progression, and error/retry states. Value statement is analysis grounded in verified PIN/OTP flows.",
+        confidence: "High for iOS/Fleet feature flows; Android Driver component equivalence remains unverified.",
+        apps: {
+          ad: { impl: null, adopted: null, text: "Code-related features exist, but no exact reusable Input-Code field was verified in this source review." },
+          ios: { impl: true, adopted: true, text: "PinCodeComponent is instantiated by AccessCodeVC in a product flow." },
+          fleet: { impl: true, adopted: true, text: "VerifyOTPScreen uses OtpTextField, stores TextFieldValue, and submits OTP intents in the feature screen." }
+        },
+        refs: [
+          code("ios", "KeepTruckin/Feature/DOTInspection/UI/AccessCode/PinCodeComponent.swift", 5, "iOS Driver · PinCodeComponent", "Local code-entry component."),
+          code("ios", "KeepTruckin/Feature/DOTInspection/UI/AccessCode/AccessCodeVC.swift", 35, "iOS Driver · AccessCodeVC use", "Product screen instantiates PinCodeComponent."),
+          code("fleet", "android/kt_fleet/kmp/feature/two-factor-auth/src/commonMain/kotlin/com/keeptruckin/android/fleet/feature/twofactorauth/verifyotp/VerifyOtpScreen.kt", 213, "Android Fleet · OtpTextField use", "Feature screen captures and submits entered OTP."),
+          doc("ad", 145, "Android Driver · DS inventory", "The 1.0.0 inventory does not list a code-entry field; Driver app equivalence remains unverified.")
+        ]
+      },
+      {
+        id: "select", name: "Input - Select", figma: "In progress", score: 84, band: "High",
+        shared: "not-listed", owner: "Unknown / not verified.",
+        source: "App-local selection/dropdown patterns; no corresponding shared BaseSelect API is listed in the reviewed inventory.",
+        why: "A clear select field can make constrained options and current value easier to scan than ad hoc menus. Value statement is analysis.",
+        confidence: "High for Driver Android/iOS and Fleet feature-local selection controls; no cross-app shared implementation is implied.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "DropDownField and MultiSelectFieldComponent are local; guide explicitly says there is no design-system equivalent yet." },
+          ios: { impl: true, adopted: true, text: "SelectionComponent is constructed by DVIR and other form flows; it remains a local FormEntry component." },
+          fleet: { impl: true, adopted: true, text: "SelectableTextField is a local feature component and is used for availability/reason selections; not a Fleet-wide DS field." }
+        },
+        refs: [
+          doc("ad", 397, "Android Driver · select gap", "Names DropDownField and says no DS equivalent exists in the guide's 1.0.0 context."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/inputfields/DropdownFieldComponent.kt", null, "Android Driver · dropdown field source", "Local dropdown implementation."),
+          code("ios", "KeepTruckin/Feature/DVIR/UI/DVIR/DvirFormBuilder.swift", 126, "iOS Driver · SelectionComponent use", "Form builder constructs local selection fields."),
+          code("fleet", "android/kt_fleet/app/src/main/java/com/keeptruckin/android/fleet/ui/details/entityavailability/compose/SelectableTextField.kt", 33, "Android Fleet · SelectableTextField source", "Local feature selection field."),
+          code("fleet", "android/kt_fleet/app/src/main/java/com/keeptruckin/android/fleet/ui/details/entityavailability/compose/UpdateEntityAvailabilityLoadedScreen.kt", 105, "Android Fleet · select field use", "Feature screen uses the local field.")
+        ]
+      },
+      {
+        id: "upload", name: "Input - Upload", figma: "In progress", score: 80, band: "High",
+        shared: "not-listed", owner: "Unknown / not verified.",
+        source: "App-local attachment/media input patterns in Driver apps; a shared Motive DS upload field is not listed.",
+        why: "A consistent upload control can make file selection, limits, and progress/error states easier to understand. Value statement is analysis.",
+        confidence: "Medium — Driver local components and product builders are directly evidenced; Fleet field equivalence is unverified.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "AttachmentFieldComponent is part of the shared local field library and has guide-reported usage." },
+          ios: { impl: true, adopted: true, text: "AttachmentComponent is constructed by form builders for document fields and supports attachment content." },
+          fleet: { impl: null, adopted: null, text: "No matching reusable upload-input component or feature call-site was verified; unrelated upload services do not establish this UI component." }
+        },
+        refs: [
+          doc("ad", 367, "Android Driver · attachment field inventory", "Lists AttachmentFieldComponent and historical site counts."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/inputfields/AttachmentFieldComponent.kt", null, "Android Driver · AttachmentFieldComponent source", "Local field implementation."),
+          code("ios", "KeepTruckin/Feature/FormEntry/UI/UI/Components/Attachment/AttachmentComponent.swift", 73, "iOS Driver · AttachmentComponent source", "Local form attachment component."),
+          code("ios", "KeepTruckin/Feature/Dispatch/UI/Form/Rendering/DispatchFormComponentBuilderImpl.swift", 425, "iOS Driver · attachment field use", "Document field builder creates AttachmentComponent.")
+        ]
+      },
+      {
+        id: "date", name: "Input - Date", figma: "In progress", score: 74, band: "Medium",
+        shared: "not-listed", owner: "Unknown / not verified.",
+        source: "Platform date picker plus app-local date/date-time wrappers; no BaseDatePicker API is listed.",
+        why: "Date bounds, locale, and timezone are user-facing correctness concerns; a consistent field can make constraints and selected dates clearer. Value statement is analysis.",
+        confidence: "High — local code definitions and feature usage are directly evidenced; guide counts are date-bound.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "DateTimeComponent and DatePickerFragment are local; the dated guide reports 16 DateTimeComponent occurrences in 6 files." },
+          ios: { impl: true, adopted: true, text: "DatePickerComponent wraps UIDatePicker and is used by form builders and feature flows." },
+          fleet: { impl: true, adopted: true, text: "BoundedDatePickerDialog is local; guide lists three date-picker sites and no shared DS equivalent." }
+        },
+        refs: [
+          doc("ad", 367, "Android Driver · date field inventory", "Lists DateTimeComponent and historical site counts."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/inputfields/DateTimeComponent.kt", null, "Android Driver · DateTimeComponent source", "Local date/time field."),
+          code("ios", "KeepTruckin/Feature/FormEntry/UI/UI/Components/Picker/DatePickerComponent.swift", 3, "iOS Driver · DatePickerComponent source", "Local UIDatePicker-backed form component."),
+          code("ios", "KeepTruckin/Feature/DVIR/UI/DVIR/DvirFormBuilder.swift", 36, "iOS Driver · date/time field construction", "Feature form builder creates date-and-time fields."),
+          doc("fleet", 363, "Android Fleet · picker gap", "Identifies local bounded date/time pickers and says no DS equivalent is listed."),
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/datepicker/BoundedDatePickerDialog.kt", null, "Android Fleet · BoundedDatePickerDialog source", "Local bounded picker implementation.")
+        ]
+      },
+      {
+        id: "time", name: "Input - Time", figma: "In progress", score: 70, band: "Medium",
+        shared: "not-listed", owner: "Unknown / not verified.",
+        source: "Platform time picker plus app-local date/time wrappers; no BaseTimePicker API is listed.",
+        why: "Clear time selection can reduce entry errors around bounds, locale, and 12/24-hour preferences. Value statement is analysis.",
+        confidence: "High — local wrappers and feature code are directly evidenced; guide counts are date-bound.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "DateTimeComponent wraps Android DatePickerDialog/TimePickerDialog; TimePickerFragment is also local." },
+          ios: { impl: true, adopted: true, text: "DatePickerComponent accepts UIDatePicker.Mode and handles .time; feature code includes time picker flows." },
+          fleet: { impl: true, adopted: true, text: "BoundedTimePickerDialog is a local feature implementation; guide lists three time-picker sites and no shared DS equivalent." }
+        },
+        refs: [
+          doc("ad", 435, "Android Driver · picker gap", "Lists DateTimeComponent and local DatePickerFragment/TimePickerFragment."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/inputfields/DateTimeComponent.kt", null, "Android Driver · DateTimeComponent source", "Uses Android date/time picker APIs."),
+          code("ios", "KeepTruckin/Feature/FormEntry/UI/UI/Components/Picker/DatePickerComponent.swift", 49, "iOS Driver · date/time modes", "The local picker distinguishes date and time modes."),
+          code("ios", "KeepTruckin/Feature/Dispatch/UI/Component/Dispatch24hTimePickerAlertVC.swift", null, "iOS Driver · dispatch time picker", "Feature-specific time picker source."),
+          doc("fleet", 363, "Android Fleet · picker gap", "Documents local bounded date/time pickers."),
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/timepicker/BoundedTimePickerDialog.kt", 29, "Android Fleet · BoundedTimePickerDialog source", "Local bounded time picker.")
+        ]
+      },
+      {
+        id: "counter", name: "Input - Counter", figma: "In progress", score: 52, band: "Low",
+        shared: "not-listed", owner: "Unknown / not verified.",
+        source: "Unverified; no matching reusable counter-field API was listed in the reviewed release inventories.",
+        why: "A counter can communicate allowed length/range and prevent invalid submissions. Value statement is analysis; no implementation claim is made.",
+        confidence: "Low — no exact reusable component or adoption source was verified in the reviewed evidence.",
+        apps: {
+          ad: { impl: null, adopted: null, text: "No exact counter-input component or product call-site was verified." },
+          ios: { impl: null, adopted: null, text: "No exact counter-input component or product call-site was verified." },
+          fleet: { impl: null, adopted: null, text: "No exact counter-input component or product call-site was verified." }
+        },
+        refs: [
+          doc("ad", 151, "Android Driver · shared component inventory", "Lists Base* components; no counter field is named in that 1.0.0 inventory."),
+          doc("ios", 58, "iOS Driver · shared component inventory", "Lists Base* components; no counter field is named in that 1.0.0 inventory."),
+          doc("fleet", 155, "Android Fleet · shared component inventory", "Lists Base* components; no counter field is named in that 1.0.0 inventory.")
+        ]
+      }
+    ];
+
+    const additionalCodeRows = [
+      {
+        id: "fleet-settings-row", name: "SettingsRow", figma: "Not in supplied Figma list", score: null, band: "Not scored",
+        repoLabel: "Android Fleet",
+        shared: "unknown", owner: "Unknown / not verified.",
+        source: "App-local Android Fleet Compose row; no Figma mapping assigned.",
+        why: "A reusable settings row standardizes navigation, secondary text, and disclosure affordances. This describes the implementation, not a measured outcome.",
+        confidence: "Medium — the definition is linked, but a product feature call site was not confirmed.",
+        apps: {
+          ad: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          ios: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          fleet: { impl: true, adopted: null, text: "SettingsRow is defined in the Fleet design module; a product feature call site was not verified." }
+        },
+        refs: [
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/SettingsRow.kt", null, "Android Fleet · SettingsRow definition", "Reusable row with title, optional subtitle, and disclosure icon."),
+        ]
+      },
+      {
+        id: "fleet-generic-error", name: "GenericErrorStateView", figma: "Not in supplied Figma list", score: null, band: "Not scored",
+        repoLabel: "Android Fleet",
+        shared: "unknown", owner: "Unknown / not verified.",
+        source: "App-local Android Fleet error-state component; no Figma mapping assigned.",
+        why: "A consistent error state gives users a clear explanation and retry path when a feature cannot load. This is a user-value analysis, not a telemetry result.",
+        confidence: "High — component definition and Device History feature use are directly linked in the reviewed Fleet repository snapshot.",
+        apps: {
+          ad: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          ios: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          fleet: { impl: true, adopted: true, text: "DeviceHistoryScreen displays GenericErrorStateView for its general-error state." }
+        },
+        refs: [
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/ErrorStateView.kt", null, "Android Fleet · GenericErrorStateView definition", "Composable error state includes a retry action."),
+          code("fleet", "android/kt_fleet/devices-install/src/main/java/com/keeptruckin/android/fleet/devicesinstall/devicehistory/composables/DeviceHistoryScreen.kt", null, "Android Fleet · GenericErrorStateView feature use", "Device history general-error branch renders the component.")
+        ]
+      },
+      {
+        id: "fleet-network-state", name: "NetworkUnavailableView", figma: "Not in supplied Figma list", score: null, band: "Not scored",
+        repoLabel: "Android Fleet",
+        shared: "unknown", owner: "Unknown / not verified.",
+        source: "App-local Android Fleet network error state; no Figma mapping assigned.",
+        why: "Separating network failures from general errors can tell users why content is unavailable and offer a retry. This is a user-value analysis.",
+        confidence: "High — local wrapper and Device History feature use are directly linked in the reviewed Fleet repository snapshot.",
+        apps: {
+          ad: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          ios: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          fleet: { impl: true, adopted: true, text: "DeviceHistoryScreen shows NetworkUnavailableView in its network-error branch." }
+        },
+        refs: [
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/NetworkUnavailableView.kt", null, "Android Fleet · NetworkUnavailableView definition", "Network-specific copy and optional retry action wrap ErrorStateView."),
+          code("fleet", "android/kt_fleet/devices-install/src/main/java/com/keeptruckin/android/fleet/devicesinstall/devicehistory/composables/DeviceHistoryScreen.kt", null, "Android Fleet · NetworkUnavailableView feature use", "Device history network-error branch renders the component.")
+        ]
+      },
+      {
+        id: "fleet-no-internet-banner", name: "NoInternetBanner", figma: "Not in supplied Figma list", score: null, band: "Not scored",
+        repoLabel: "Android Fleet",
+        shared: "unknown", owner: "Unknown / not verified.",
+        source: "App-local Android Fleet connectivity banner; no Figma mapping assigned.",
+        why: "A persistent connectivity banner can explain why a flow is limited while keeping the current screen visible. This is a user-value analysis.",
+        confidence: "High — source definition and product feature call sites are linked in the reviewed Fleet repository snapshot.",
+        apps: {
+          ad: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          ios: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          fleet: { impl: true, adopted: true, text: "Omnicam installation screens show NoInternetBanner when connectivity is unavailable." }
+        },
+        refs: [
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/NoInternetBanner.kt", null, "Android Fleet · NoInternetBanner definition", "Reusable local connectivity banner."),
+          code("fleet", "android/kt_fleet/devices-install/src/main/java/com/keeptruckin/android/fleet/devicesinstall/omnicam/location/OmnicamLocationSelectionFragment.kt", null, "Android Fleet · NoInternetBanner feature use", "Omnicam location flow displays the banner when offline."),
+          code("fleet", "android/kt_fleet/devices-install/src/main/java/com/keeptruckin/android/fleet/devicesinstall/omnicam/attachmentsteps/OmnicamLedStatesFragment.kt", null, "Android Fleet · NoInternetBanner LED flow use", "Omnicam LED states flow displays the banner when offline.")
+        ]
+      },
+      {
+        id: "fleet-home-screen-card", name: "HomeScreenCard", figma: "Not in supplied Figma list", score: null, band: "Not scored",
+        repoLabel: "Android Fleet",
+        shared: "unknown", owner: "Unknown / not verified.",
+        source: "App-local Android Fleet card container; no Figma mapping assigned.",
+        why: "A shared card container can keep content grouping and spacing consistent. The source establishes a local implementation, not a measured product outcome.",
+        confidence: "High — definition and feature composition are linked in the reviewed Fleet repository snapshot.",
+        apps: {
+          ad: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          ios: { impl: null, adopted: null, text: "Not assessed for this Fleet-only code component." },
+          fleet: { impl: true, adopted: true, text: "HomeScreenCard is composed by the Fleet Card ErrorCard feature." }
+        },
+        refs: [
+          code("fleet", "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/home/HomeScreenCard.kt", 20, "Android Fleet · HomeScreenCard definition", "Reusable card container with local padding, elevation, and shape."),
+          code("fleet", "android/kt_fleet/kmp/feature/fleet-card/src/androidMain/kotlin/com/keeptruckin/android/fleet/feature/fleetcard/ui/compose/ErrorCard.kt", 45, "Android Fleet · HomeScreenCard composition", "Feature ErrorCard composes HomeScreenCard.")
+        ]
+      }
+    ];
+
+    additionalCodeRows.push(
+      {
+        id: "driver-unread-dot", name: "UnreadDot", figma: "Not in supplied Figma list", score: null, band: "Not scored",
+        repoLabel: "Android Driver",
+        shared: "unknown", owner: "Unknown / not verified.",
+        source: "App-local Compose unread indicator; no Figma mapping assigned.",
+        why: "A compact unread marker can help users distinguish new document activity without adding text to every list row. This is a user-value analysis, not a measured outcome.",
+        confidence: "High — definition and two document-management call sites were verified in the local Android Driver checkout.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "UnreadDot is defined in the shared local view-components module and appears in document and document-type list rows." },
+          ios: { impl: null, adopted: null, text: "Not assessed for this Android Driver-only code finding." },
+          fleet: { impl: null, adopted: null, text: "Not assessed for this Android Driver-only code finding." }
+        },
+        refs: [
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/UnreadDot.kt", 14, "Android Driver · UnreadDot definition", "Local Compose unread indicator."),
+          code("ad", "keeptruckin/src/main/java/com/keeptruckin/android/feature/documentmanagement/ui/documentlist/DocumentItems.kt", 142, "Android Driver · UnreadDot document-list use", "Unread marker appears on document-folder list items."),
+          code("ad", "keeptruckin/src/main/java/com/keeptruckin/android/feature/documentmanagement/ui/documenttypelist/DocumentTypeItems.kt", 69, "Android Driver · UnreadDot document-type use", "Unread marker appears in document-type rows.")
+        ]
+      },
+      {
+        id: "driver-pulsating-dot", name: "PulsatingDot", figma: "Not in supplied Figma list", score: null, band: "Not scored",
+        repoLabel: "Android Driver",
+        shared: "unknown", owner: "Unknown / not verified.",
+        source: "App-local animated Compose indicator; no Figma mapping assigned.",
+        why: "An animated status cue can draw attention to a live or changing state. This is a value hypothesis based on code context, not a verified outcome.",
+        confidence: "High — local definition and use in the duty-status card are directly linked in the Android Driver checkout.",
+        apps: {
+          ad: { impl: true, adopted: true, text: "PulsatingDot is defined in local view-components and is rendered from DutyStatusStaticCard." },
+          ios: { impl: null, adopted: null, text: "Not assessed for this Android Driver-only code finding." },
+          fleet: { impl: null, adopted: null, text: "Not assessed for this Android Driver-only code finding." }
+        },
+        refs: [
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/PulsatingDot.kt", 66, "Android Driver · PulsatingDot definition", "Animated dot with configurable rings and size."),
+          code("ad", "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/DutyStatusStaticCard.kt", 106, "Android Driver · PulsatingDot duty-status use", "Duty-status card renders the animated indicator.")
+        ]
+      }
+    );
+
+    const AD_MODULE = "keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/elements/";
+    const AD_APP = "keeptruckin/src/main/java/com/keeptruckin/android/";
+    const FLEET_DESIGN = "android/kt_fleet/design/src/main/java/com/keeptruckin/android/fleet/design/";
+    const FLEET_APP = "android/kt_fleet/app/src/main/java/com/keeptruckin/android/fleet/ui/";
+    const FLEET_INSTALL = "android/kt_fleet/devices-install/src/main/java/com/keeptruckin/android/fleet/devicesinstall/";
+    const FLEET_INSTALL_V2 = "android/kt_fleet/devices-install-v2/src/main/java/com/keeptruckin/android/fleet/devicesinstallv2/";
+    const IOS_FORM = "KeepTruckin/Feature/FormEntry/UI/UI/Components/";
+    const IOS_COMMON = "KeepTruckin/UI/Common/Components/";
+    const IOS_BASE = "KeepTruckin/Application/Common/BaseViews/";
+    const screenEvidence = {
+      ad: {
+        kind: "design",
+        title: "Driver app screens · user-marked incomplete",
+        href: "https://www.figma.com/design/Clzx71VJPIpg7CXSPuh5OJ/Mobile-App-Components?node-id=20115-51408&m=dev",
+        note: "Screen-set reference only; this does not map or assign a completion status to an individual component."
+      },
+      ios: {
+        kind: "design",
+        title: "Driver app screens · user-marked incomplete",
+        href: "https://www.figma.com/design/Clzx71VJPIpg7CXSPuh5OJ/Mobile-App-Components?node-id=20115-51408&m=dev",
+        note: "Screen-set reference only; this does not map or assign a completion status to an individual component."
+      },
+      fleet: {
+        kind: "design",
+        title: "Fleet app screens · user-marked incomplete",
+        href: "https://www.figma.com/design/Clzx71VJPIpg7CXSPuh5OJ/Mobile-App-Components?node-id=20111-51225&m=dev",
+        note: "Screen-set reference only; this does not map or assign a completion status to an individual component."
+      }
+    };
+
+    function codeFinding(id, name, repo, source, why, definition, uses = [], adopted = uses.length > 0) {
+      const repoLabel = REPOS[repo].label;
+      const refs = [
+        code(repo, definition[0], definition[1], `${repoLabel} · ${name} definition`, definition[2]),
+        ...uses.map(use => code(repo, use[0], use[1], `${repoLabel} · ${name} feature use`, use[2])),
+        screenEvidence[repo]
+      ];
+      const apps = {
+        ad: { impl: null, adopted: null, text: "This app-specific implementation was not matched; absence is not inferred." },
+        ios: { impl: null, adopted: null, text: "This app-specific implementation was not matched; absence is not inferred." },
+        fleet: { impl: null, adopted: null, text: "This app-specific implementation was not matched; absence is not inferred." }
+      };
+      apps[repo] = {
+        impl: true,
+        adopted: adopted === true ? true : null,
+        text: adopted === true
+          ? `Feature use verified: ${uses[0]?.[2] || "the component appears in app feature code."}`
+          : "Definition is present; product-feature adoption was not verified."
+      };
+      return {
+        id, name, repoLabel, figma: "Not in supplied Figma list", score: null, band: "Not scored",
+        shared: "unknown", owner: "Unknown / not verified.", source, why,
+        confidence: adopted === true
+          ? "High — definition and feature call site are linked in the reviewed source snapshot."
+          : "Medium — a component definition is linked, but product adoption was not verified.",
+        apps, refs
+      };
+    }
+
+    additionalCodeRows.push(
+      codeFinding("ad-checkbox", "CheckboxComponent — Android Driver", "ad", "App-local Compose form control.",
+        "A named checkbox can make multi-select and consent choices easier to scan and operate.",
+        [AD_MODULE + "inputfields/CheckboxComponent.kt", 18, "Composable checkbox definition."],
+        [[AD_APP + "feature/register/ui/RegisterActivity.kt", 476, "Registration screen renders the checkbox component."]]),
+      codeFinding("ad-radio-group", "RadioButtonGroup — Android Driver", "ad", "App-local Compose selection group.",
+        "A radio group makes mutually exclusive choices and their selected state explicit.",
+        [AD_MODULE + "inputfields/SelectionFieldComponent.kt", 55, "Reusable radio-button group definition."],
+        [[AD_APP + "feature/onboarding/preferences/PreferencesOnboardingScreen.kt", 266, "Preferences screen uses the group."]]),
+      codeFinding("ad-checkbox-button", "CheckBoxButton — Android Driver", "ad", "App-local Compose checkbox control.",
+        "A compact checkbox control supports explicit multi-select in filters and forms.",
+        [AD_MODULE + "inputfields/SelectionFieldComponent.kt", 112, "Reusable checkbox-button definition."],
+        [[AD_APP + "feature/savingsfinder/ui/networktypebottomsheet/FilterLocationsBottomSheetScreen.kt", 94, "Savings Finder location filter renders the checkbox control."]]),
+      codeFinding("ad-savings-radio-group", "RadioButtonGroup — Savings Finder · Android Driver", "ad", "App-local Savings Finder Compose radio group.",
+        "A radio option makes single-choice network filters visibly selectable.",
+        [AD_APP + "feature/savingsfinder/ui/networktypebottomsheet/RadioButton.kt", 37, "Feature-local radio-group definition."],
+        [[AD_APP + "feature/savingsfinder/ui/networktypebottomsheet/NetworkTypeBottomSheetScreen.kt", 101, "Savings Finder network filter screen renders the local radio group."]]),
+      codeFinding("ad-checked-list-item", "CheckedListItem — Android Driver", "ad", "App-local Compose list item in the shared view-components module.",
+        "A selectable list item combines content and checked state into one consistent row.",
+        [AD_MODULE + "listitems/CheckedListItem.kt", 29, "Reusable checked-list-item definition."],
+        [[AD_APP + "feature/documentmanagement/ui/documentlist/DocumentItems.kt", 57, "Document list uses checked rows."]]),
+      codeFinding("ad-notification-list-item", "NotificationListItem — Android Driver", "ad", "App-local Compose notification row in the shared view-components module.",
+        "A standard notification row can keep status, copy, and action affordances together.",
+        [AD_MODULE + "listitems/NotificationListItem.kt", 32, "Reusable notification-list-item definition."],
+        [[AD_APP + "feature/dvir/ui/screen/InspectionReportDetailContent.kt", 168, "Inspection report renders notification rows."]]),
+      codeFinding("ad-single-select-list-item", "SingleSelectListItem — Android Driver", "ad", "App-local Compose single-selection list item.",
+        "A dedicated single-choice row can clarify selection state in long option lists.",
+        [AD_MODULE + "listitems/SingleSelectListItem.kt", 32, "Single-select list-item definition."],
+        [["keeptruckin/modules/common/view/view-components/src/main/java/com/keeptruckin/android/view/compose/layouts/bottomsheets/BottomSheetLayout.kt", 231, "Shared bottom-sheet layout composes this selection item."]], null),
+      codeFinding("ad-toggle", "ToggleComponent — Android Driver", "ad", "App-local Compose toggle control.",
+        "A toggle communicates an on/off setting without requiring a separate save action.",
+        [AD_MODULE + "inputfields/ToggleComponent.kt", 27, "Reusable toggle definition."],
+        [[AD_APP + "view/account/NotificationSettingsActivity.kt", 261, "Notification settings screen renders toggles."]]),
+      codeFinding("ad-segmented-tabs", "SegmentedTabRow — Android Driver", "ad", "App-local Compose segmented tab control.",
+        "Segmented tabs make adjacent views or time ranges discoverable within one screen.",
+        [AD_MODULE + "SegmentedTabRow.kt", 23, "Reusable segmented-tab-row definition."],
+        [[AD_APP + "feature/assets/ui/compose/ReeferLogComposable.kt", 548, "Reefer log screen uses segmented tabs."]]),
+      codeFinding("ad-empty-list", "EmptyListComponent — Android Driver", "ad", "App-local Compose empty-list state.",
+        "An empty list can explain why there are no options and guide the next useful action.",
+        [AD_MODULE + "EmptyListComponent.kt", 29, "Reusable empty-list component definition."],
+        [[AD_APP + "feature/driverwalkthrough/ui/component/entityselection/EntitySelectionContent.kt", 192, "Entity selection screens render the empty-list state."]]),
+      codeFinding("ad-empty-state", "EmptyStateScreen — Android Driver", "ad", "App-local Compose empty-state screen.",
+        "A reusable empty state can pair a clear explanation with an appropriate next action.",
+        [AD_MODULE + "emptystate/EmptyStateScreen.kt", 24, "Reusable empty-state-screen definition."],
+        [[AD_APP + "view/performancehub/PerformanceHubTaskListFragment.kt", 166, "Performance Hub renders the empty state."]]),
+      codeFinding("ad-error-retry", "ErrorWithRetry — Android Driver", "ad", "App-local Compose recoverable error state.",
+        "A consistent retry state tells users what failed and how to recover.",
+        [AD_MODULE + "error/ui/ErrorWithRetry.kt", 42, "Reusable error-with-retry definition."],
+        [[AD_APP + "feature/dvir/ui/screen/DvirFragmentContent.kt", 94, "DVIR feature renders the recoverable error state."]]),
+      codeFinding("ad-simple-banner", "SimpleBanner — Android Driver", "ad", "App-local Compose inline banner.",
+        "An inline banner can surface important context without replacing the current screen.",
+        [AD_MODULE + "banner/SimpleBanner.kt", 22, "Reusable banner definition."],
+        [[AD_APP + "feature/thirdsignature/ui/screen/ReviewInspectionListContent.kt", 53, "Inspection list displays the banner."]]),
+
+      codeFinding("ios-checkbox", "CheckboxComponent — iOS Driver", "ios", "App-local UIKit form component.",
+        "Checkboxes support explicit multi-select choices in form-based workflows.",
+        [IOS_FORM + "CheckBox/CheckBoxComponent.swift", 113, "UIKit checkbox form component definition."],
+        [[ "KeepTruckin/Feature/Dispatch/UI/Form/Rendering/DispatchFormComponentBuilderImpl.swift", 371, "Dispatch form builder creates checkbox components for multi-select fields."]]),
+      codeFinding("ios-radio", "RadioButtonComponent — iOS Driver", "ios", "App-local UIKit form component.",
+        "A radio group makes single-choice selections clear within dynamic forms.",
+        [IOS_FORM + "RadioButton/RadioButtonComponent.swift", 145, "UIKit radio-button form component definition."],
+        [[ "KeepTruckin/Feature/Dispatch/UI/Form/Rendering/DispatchFormComponentBuilderImpl.swift", 379, "Dispatch form builder creates radio components for single-choice fields."]]),
+      codeFinding("ios-toggle", "ToggleComponent — iOS Driver", "ios", "App-local UIKit form component.",
+        "A consistent toggle makes boolean form fields easy to understand and change.",
+        [IOS_FORM + "Toggle/ToggleComponent.swift", 28, "UIKit toggle form component definition."],
+        [[ "KeepTruckin/Feature/Dispatch/UI/Form/Rendering/DispatchFormComponentBuilderImpl.swift", 320, "Dispatch form builder creates toggle components for boolean fields."]]),
+      codeFinding("ios-modal-radio", "ModalRadioButtonComponent — iOS Driver", "ios", "App-local UIKit modal radio selection component.",
+        "A modal choice list can present longer mutually exclusive option sets without crowding the form.",
+        [IOS_FORM + "ModalRadioButtonComponent/ModalRadioButtonComponent.swift", 38, "Modal radio component definition."],
+        [[IOS_FORM + "ModalRadioButtonComponent/ModalRadioButtonComponent.swift", 58, "The modal component composes RadioButtonComponent internally."]], null),
+      codeFinding("ios-search-bar", "SearchBarComponent — iOS Driver", "ios", "App-local UIKit search component.",
+        "A reusable search bar can make filtering and locating content consistent across screens.",
+        [IOS_COMMON + "SearchComponent/SearchBarComponent.swift", 5, "Common search-bar component definition."], [], null),
+      codeFinding("ios-segment", "SegmentComponent — iOS Driver", "ios", "App-local UIKit segmented control.",
+        "A segmented control makes a small set of neighboring views or filters easy to compare.",
+        [IOS_COMMON + "SegmentControl/SegmentComponent.swift", 17, "Common segmented-control definition."], [], null),
+      codeFinding("ios-card", "CardComponent — iOS Driver", "ios", "App-local UIKit card container.",
+        "A reusable card can establish consistent grouping and spacing for related content.",
+        [IOS_COMMON + "Card/CardComponent.swift", 21, "Common card-container definition."], [], null),
+      codeFinding("ios-info-card", "InfoCardComponent — iOS Driver", "ios", "App-local UIKit informational card.",
+        "An information card can emphasize a concise status or explanation within a larger flow.",
+        [IOS_COMMON + "Card/InfoCardComponent.swift", 11, "Common informational-card definition."], [], null),
+      codeFinding("ios-empty-state", "EmptyStateView — iOS Driver", "ios", "App-local UIKit legacy empty/offline state.",
+        "An empty-state view can explain missing content and direct the user to a next step.",
+        [IOS_BASE + "EmptyStateView.swift", 16, "Legacy generic empty-state view definition."], [], null),
+      codeFinding("ios-new-empty-state", "NewEmptyStateView — iOS Driver", "ios", "App-local UIKit replacement empty/offline state.",
+        "A newer empty-state pattern can improve consistency while the legacy view is phased out.",
+        [IOS_BASE + "NewEmptyStateView.swift", 18, "Replacement empty-state view; its source says the older view is planned for deprecation."], [], null),
+      codeFinding("ios-banner", "BannerComponent — iOS Driver", "ios", "App-local UIKit banner component.",
+        "A banner can keep a contextual message visible alongside the active feature.",
+        [IOS_COMMON + "Banner/BannerComponent.swift", 12, "Common banner component definition."], [], null),
+      codeFinding("ios-text-row", "SimpleTextRowComponent — iOS Driver", "ios", "App-local UIKit labeled text row.",
+        "A reusable text row can standardize label/value hierarchy across dense detail screens.",
+        [IOS_COMMON + "LabeledComponent/SimpleTextRowComponent.swift", 12, "Common simple text-row definition."], [], null),
+      codeFinding("ios-selectable-cell", "SelectableListCell — iOS Driver", "ios", "App-local UIKit selectable list cell.",
+        "A dedicated selectable cell makes option rows and their selected state reusable.",
+        ["KeepTruckin/UI/Common/SelectableList/SelectableListCell.swift", 1, "Reusable selectable table-view cell definition."],
+        [["KeepTruckin/UI/Common/SelectableList/SelectableComponentListVC.swift", 95, "Selectable list controller registers the reusable cell."]]),
+
+      codeFinding("fleet-odometer-checkbox", "InstallationDetailsOdometerCheckbox — Android Fleet", "fleet", "App-local Compose checkbox wrapper around the platform control.",
+        "A labeled checkbox supports explicit confirmation of odometer details during installation.",
+        [FLEET_INSTALL + "vgonboarding/installationdata/composables/InstallationDetailsOdometerCheckbox.kt", 25, "Installation checkbox wrapper definition."],
+        [[FLEET_INSTALL + "vgonboarding/installationdata/composables/InstallDetailsScreen.kt", 161, "Installation form renders the checkbox."]]),
+      codeFinding("fleet-radio-option", "RadioOptionItem — Android Fleet", "fleet", "App-local Compose radio option row.",
+        "A labeled radio row makes single-choice feedback options easier to scan and select.",
+        [FLEET_INSTALL_V2 + "screens/step/feedback/RadioOptionItem.kt", 43, "Reusable option-row definition."],
+        [[FLEET_INSTALL_V2 + "screens/step/feedback/InstallFeedbackSectionView.kt", 46, "Installation feedback screen renders radio options."]]),
+      codeFinding("fleet-ring-radio", "RingRadioButton — Android Fleet", "fleet", "App-local Compose radio-button variant.",
+        "A distinct radio treatment makes the selection state visible in the fault-code feedback form.",
+        [FLEET_APP + "faultcodes/SubmitFeedbackBottomSheet.kt", 189, "Feature-local ring radio-button definition."],
+        [[FLEET_APP + "faultcodes/SubmitFeedbackBottomSheet.kt", 171, "Fault-code feedback sheet uses the radio control."]]),
+      codeFinding("fleet-settings-checkbox", "SettingsOptionsCheckboxView — Android Fleet", "fleet", "App-local Android settings checkbox view.",
+        "A settings checkbox can align a labeled option and its selection affordance.",
+        [FLEET_DESIGN + "SettingsOptionsCheckboxView.kt", 11, "Custom Android settings-checkbox view definition."], [], null),
+      codeFinding("fleet-notification-checkbox", "SettingsNotificationCategoryCheckboxView — Android Fleet", "fleet", "App-local Android notification-category checkbox view.",
+        "A category checkbox can expose notification preferences at a glance.",
+        [FLEET_DESIGN + "SettingsNotificationCategoryCheckboxView.kt", 12, "Custom notification-category checkbox view definition."], [], null),
+      codeFinding("fleet-language-row", "LanguageSelectionRow — Android Fleet", "fleet", "App-local Compose preference row.",
+        "A language row makes the current locale and available language choices scannable.",
+        [FLEET_DESIGN + "LanguageSelectionRow.kt", 20, "Reusable language-selection row definition."],
+        [[FLEET_APP + "settings/notifications/LanguageSettingsFragment.kt", 247, "Language settings renders selectable language rows."]]),
+      codeFinding("fleet-option-row", "OptionRow — Android Fleet", "fleet", "App-local Compose selection row.",
+        "A consistent option row can reduce ambiguity in installation and device-choice flows.",
+        [FLEET_DESIGN + "OptionRow.kt", 14, "Reusable option-row definition."],
+        [[FLEET_INSTALL_V2 + "screens/step/cablecheck/screen/VehicleAttributeSelectionScreen.kt", 97, "Vehicle-attribute screen renders option rows."]]),
+      codeFinding("fleet-filter-options-row", "FilterOptionsRow — Android Fleet", "fleet", "App-local Compose filter row.",
+        "A filter row makes the available filter and selected value easier to scan.",
+        [FLEET_APP + "filter/composables/FilterOptionsRow.kt", 19, "Reusable filter-options-row definition."],
+        [[FLEET_APP + "filter/FilterFragment.kt", 371, "Fleet filter screen composes the row."]]),
+      codeFinding("fleet-entity-row", "EntityRow — Android Fleet", "fleet", "App-local Compose entity-selection row.",
+        "A named entity row can standardize the presentation of driver, vehicle, and asset choices.",
+        [FLEET_APP + "filter/composables/EntityRow.kt", 46, "Entity-row component definition."], [], null),
+      codeFinding("fleet-info-row", "EntityDetailV2InfoRow — Android Fleet", "fleet", "App-local Compose detail row.",
+        "A shared detail row can make entity facts easier to scan consistently.",
+        [FLEET_APP + "fleetview/detail/entitydetail/EntityDetailV2InfoRow.kt", 41, "Entity detail information-row definition."],
+        [[FLEET_APP + "fleetview/detail/entitydetail/EntityDetailV2Content.kt", 338, "Entity detail screen renders the information row."]]),
+      codeFinding("fleet-navigable-row", "EntityDetailV2NavigableRow — Android Fleet", "fleet", "App-local Compose navigable detail row.",
+        "A consistent disclosure row signals that more related information is available.",
+        [FLEET_APP + "fleetview/detail/entitydetail/EntityDetailV2NavigableRow.kt", 30, "Navigable entity-detail row definition."],
+        [[FLEET_APP + "fleetview/detail/entitydetail/EntityDetailV2Content.kt", 172, "Entity detail screen uses the row for navigation."]]),
+      codeFinding("fleet-fault-code-card", "FaultCodeCardView — Android Fleet", "fleet", "App-local Compose fault-code card.",
+        "A structured fault card helps users distinguish a code, description, and next action.",
+        [FLEET_APP + "faultcodes/FaultCodeCardView.kt", 60, "Fault-code card definition."],
+        [[FLEET_APP + "faultcodes/AIFaultCodeList.kt", 124, "Fault-code list renders the card."]]),
+      codeFinding("fleet-cluster-list-item", "FleetViewV2ClusterListItem — Android Fleet", "fleet", "App-local Compose Fleet View list item.",
+        "A cluster row summarizes grouped entities while preserving the map/list navigation context.",
+        [FLEET_APP + "fleetview/listview/components/FleetViewV2ClusterListItem.kt", 42, "Cluster list-item definition."],
+        [[FLEET_APP + "fleetview/listview/FleetViewListScreen.kt", 781, "Fleet View list screen renders cluster items."]]),
+      codeFinding("fleet-travel-group-row", "FleetViewV2TravelGroupListItem — Android Fleet", "fleet", "App-local Compose Fleet View list item.",
+        "A travel-group row makes grouped vehicle activity scannable in Fleet View.",
+        [FLEET_APP + "fleetview/listview/components/FleetViewV2TravelGroupListItem.kt", 58, "Travel-group list-item definition."],
+        [[FLEET_APP + "fleetview/listview/FleetViewListScreen.kt", 768, "Fleet View list screen renders travel-group items."]]),
+      codeFinding("fleet-asset-row", "FleetViewV2AssetRowItem — Android Fleet", "fleet", "App-local Compose configurable-card row.",
+        "An asset row gives each asset a consistent summary in the Fleet View list.",
+        [FLEET_APP + "fleetview/listview/components/configurablecards/FleetViewV2AssetRowItem.kt", 43, "Asset row-item definition."],
+        [[FLEET_APP + "fleetview/listview/components/configurablecards/FleetView2UiMapperConfigurableCards.kt", 63, "Configurable-card mapper selects the asset row."]]),
+      codeFinding("fleet-dispatch-row", "FleetViewV2DispatchRowItem — Android Fleet", "fleet", "App-local Compose configurable-card row.",
+        "A dispatch row keeps dispatch status and summary aligned within the Fleet View list.",
+        [FLEET_APP + "fleetview/listview/components/configurablecards/FleetViewV2DispatchRowItem.kt", 54, "Dispatch row-item definition."],
+        [[FLEET_APP + "fleetview/listview/components/configurablecards/FleetView2UiMapperConfigurableCards.kt", 97, "Configurable-card mapper selects the dispatch row."]]),
+      codeFinding("fleet-driver-row", "FleetViewV2DriverRowItem — Android Fleet", "fleet", "App-local Compose configurable-card row.",
+        "A driver row makes identity and driver status scannable across Fleet View results.",
+        [FLEET_APP + "fleetview/listview/components/configurablecards/FleetViewV2DriverRowItem.kt", 48, "Driver row-item definition."],
+        [[FLEET_APP + "fleetview/listview/components/configurablecards/FleetView2UiMapperConfigurableCards.kt", 47, "Configurable-card mapper selects the driver row."]]),
+      codeFinding("fleet-immobilizer-row", "FleetViewV2ImmobilizerRowItem — Android Fleet", "fleet", "App-local Compose configurable-card row.",
+        "An immobilizer row makes a sensitive vehicle state visible in the Fleet View list.",
+        [FLEET_APP + "fleetview/listview/components/configurablecards/FleetViewV2ImmobilizerRowItem.kt", 42, "Immobilizer row-item definition."],
+        [[FLEET_APP + "fleetview/listview/components/configurablecards/FleetView2UiMapperConfigurableCards.kt", 118, "Configurable-card mapper selects the immobilizer row."]]),
+      codeFinding("fleet-motion-row", "FleetViewV2MotionStatusRowItem — Android Fleet", "fleet", "App-local Compose configurable-card row.",
+        "A motion-status row exposes vehicle movement state in a compact list summary.",
+        [FLEET_APP + "fleetview/listview/components/configurablecards/FleetViewV2MotionStatusRowItem.kt", 33, "Motion-status row-item definition."],
+        [[FLEET_APP + "fleetview/listview/components/configurablecards/FleetView2UiMapperConfigurableCards.kt", 125, "Configurable-card mapper selects the motion-status row."]]),
+      codeFinding("fleet-vehicle-row", "FleetViewV2VehicleRowItem — Android Fleet", "fleet", "App-local Compose configurable-card row.",
+        "A vehicle row supports quick scanning of vehicle identity and current status.",
+        [FLEET_APP + "fleetview/listview/components/configurablecards/FleetViewV2VehicleRowItem.kt", 58, "Vehicle row-item definition."],
+        [[FLEET_APP + "fleetview/listview/components/configurablecards/FleetView2UiMapperConfigurableCards.kt", 55, "Configurable-card mapper selects the vehicle row."]]),
+      codeFinding("fleet-search-toolbar", "FleetViewSearchToolbar — Android Fleet", "fleet", "App-local Compose search toolbar.",
+        "A focused search toolbar helps users find a vehicle, driver, or asset in a large fleet.",
+        [FLEET_APP + "fleetview/search/FleetViewSearchToolbar.kt", 70, "Fleet View search-toolbar definition."],
+        [[FLEET_APP + "fleetview/FleetViewV2Fragment.kt", 373, "Fleet View screen renders the search toolbar."]]),
+      codeFinding("fleet-empty-search", "FleetViewEmptySearch — Android Fleet", "fleet", "App-local Compose empty-search state.",
+        "A specific no-results state helps users understand when a search has no matches.",
+        [FLEET_APP + "fleetview/search/components/FleetViewEmptySearch.kt", 26, "Fleet View empty-search definition."],
+        [[FLEET_APP + "fleetview/search/components/FleetViewSearchResultsOverlay.kt", 37, "Search-results overlay shows the empty-search state."]]),
+      codeFinding("fleet-search-field", "SearchField — Android Fleet", "fleet", "App-local Compose search field.",
+        "A reusable search field can make filtering and discovery consistent across Fleet screens.",
+        [FLEET_DESIGN + "textfield/SearchField.kt", 27, "Shared Fleet design-module search-field definition."],
+        [[FLEET_INSTALL_V2 + "screens/step/vehicleconfirm/SelectVehicleListScreen.kt", 77, "Vehicle-selection screen uses the search field."]]),
+      codeFinding("fleet-error-image", "ErrorStateWithImageView — Android Fleet", "fleet", "App-local Compose illustrated error state.",
+        "An illustrated error state can explain a failed step while keeping the recovery action visible.",
+        [FLEET_DESIGN + "ErrorStateWithImageView.kt", 21, "Illustrated error-state definition."],
+        [[FLEET_INSTALL + "omnicam/selection/OmnicamSelectionFragment.kt", 327, "Omnicam selection flow renders the error state."]]),
+      codeFinding("fleet-offline-toolbar-banner", "NoInternetBannerBelowToolbar — Android Fleet", "fleet", "App-local connectivity banner variant.",
+        "A below-toolbar offline banner communicates connectivity loss without replacing the current screen.",
+        [FLEET_DESIGN + "banners/NoInternetBannerBelowToolbar.kt", 18, "Below-toolbar connectivity banner definition."],
+        [[FLEET_APP + "login/LoginErrorBanner.kt", 79, "Login flow renders the banner below the toolbar."]])
+    );
+
+    additionalCodeRows.forEach(row => {
+      if (!row.refs.some(ref => ref.kind === "design")) {
+        const key = row.repoLabel === "Android Fleet" ? "fleet" : row.repoLabel === "iOS Driver" ? "ios" : "ad";
+        row.refs.push(screenEvidence[key]);
+      }
+    });
+
+    const displayRows = [...rows, ...additionalCodeRows];
+
+    const ownershipRefs = [
+      ownerRef("ad", "CODEOWNERS", 1032, "Android Driver · CODEOWNERS", "Maps shared design-system and view-component paths to @mobile_design_system."),
+      ownerRef("ios", "CODEOWNERS", 1255, "iOS Driver · CODEOWNERS", "Maps Packages/Infrastructure/DesignSystem to @mobile_design_system_piam.")
+    ];
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[char]);
+    }
+
+    function coverage(row) {
+      const driver = row.apps.ad.adopted === true || row.apps.ios.adopted === true;
+      const fleet = row.apps.fleet.adopted === true;
+      if (driver && fleet) return "Both";
+      if (driver) return "Driver";
+      if (fleet) return "Fleet";
+      return "Not verified";
+    }
+
+    function badge(text, kind) {
+      return `<span class="badge ${kind}">${escapeHtml(text)}</span>`;
+    }
+
+    function appCell(state, codeRefs) {
+      const impl = state.impl === true
+        ? badge("Code exists", "yes")
+        : state.impl === null
+          ? badge("Code unverified", "unknown")
+          : badge("No reusable match", "no");
+      const adoption = state.adopted === true
+        ? badge("Used in product", "yes")
+        : state.adopted === false
+          ? badge("No use found", "no")
+          : badge("Use unverified", "unknown");
+      const codeLinks = codeRefs.length
+          ? `<div class="app-code-refs"><span class="code-ref-label">Source code</span>${codeRefs.map(ref => `
+              <div class="app-code-ref">
+                <a href="${escapeHtml(ref.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(ref.title.split(" · ").slice(1).join(" · "))}</a>
+                <span>${escapeHtml(ref.note)}</span>
+              </div>`).join("")}</div>`
+          : "";
+      return `<td class="app-cell">
+          <div class="app-status">${impl}${adoption}</div>
+          ${codeLinks}
+          <div class="app-text">${escapeHtml(state.text)}</div>
+      </td>`;
+    }
+
+    function refList(refs) {
+      return `<ul class="evidence-list">${refs.map(ref => `
+        <li>
+          <a href="${escapeHtml(ref.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(ref.title)}</a>
+          <span>${escapeHtml(ref.note)}</span>
+        </li>`).join("")}</ul>`;
+    }
+
+    function rowHtml(row) {
+      const band = row.band === "Not scored" ? "Not scored" : row.band;
+      const bandClass = row.band === "Not scored" ? "low" : row.band.toLowerCase();
+      const score = row.score === null ? "—" : `${row.score} · provisional`;
+      const sharedLabel = row.shared === "yes"
+        ? `Available · ${shared[row.id] || "Base* API"}`
+        : row.shared === "unknown" ? "Not assessed" : "Not listed in 1.0.0";
+      const sharedBadge = row.shared === "yes" ? "yes" : row.shared === "unknown" ? "unknown" : "not-listed";
+      const cov = coverage(row);
+      const primary = row.figma === "Complete" ? "complete"
+        : row.figma === "In progress" ? "progress" : "not-listed";
+      const figmaLabel = row.figma === "Complete" ? "Done in Figma"
+        : row.figma === "In progress" ? "Not completed (in progress)" : "Not in supplied Figma list";
+      const owners = row.shared === "yes"
+        ? "Mobile Design System (shared API); app-local owner varies / not verified."
+        : row.owner;
+      const source = row.source;
+      const refs = row.shared === "yes" ? [...sharedRefs, ...row.refs, ...ownershipRefs] : row.refs;
+      const allText = [
+        row.name, row.figma, row.band, sharedLabel, owners, source, row.why,
+        ...Object.values(row.apps).map(app => app.text),
+        ...refs.map(ref => `${ref.href} ${ref.title} ${ref.note}`)
+      ].join(" ").toLowerCase();
+      const rowClass = row.figma === "Not in supplied Figma list" ? "code-only-row" : "";
+      const scopeNote = row.figma === "Not in supplied Figma list"
+        ? `<span class="component-note">${escapeHtml(row.repoLabel)} code finding · no component-level Figma status</span>`
+        : row.id === "header-sheet" ? '<span class="component-note">One Figma entry · two code findings</span>' : "";
+      return `<tr class="${rowClass}" data-status="${escapeHtml(row.figma)}" data-priority="${escapeHtml(band)}"
+                  data-coverage="${escapeHtml(cov)}" data-search="${escapeHtml(allText)}">
+        <td><span class="component-name">${escapeHtml(row.name)}</span>
+          ${scopeNote}
+        </td>
+        <td>${badge(figmaLabel, primary)}</td>
+        <td><div class="priority-cell">${badge(band, bandClass)}<span class="score">${escapeHtml(score)}</span></div></td>
+        <td><span class="cell-main">${badge(sharedLabel, sharedBadge)}</span>
+          <span class="cell-sub">${row.shared === "yes" ? "Named in the release inventory; package source was not audited."
+            : row.shared === "unknown" ? "Shared-system mapping was not assessed." : "Not listed in release 1.0.0; a newer release may differ."}</span>
+        </td>
+        ${appCell(row.apps.ad, row.refs.filter(ref => ref.kind === "code" && ref.repo === "ad"))}
+        ${appCell(row.apps.ios, row.refs.filter(ref => ref.kind === "code" && ref.repo === "ios"))}
+        ${appCell(row.apps.fleet, row.refs.filter(ref => ref.kind === "code" && ref.repo === "fleet"))}
+        <td>${badge(cov, "coverage")}</td>
+        <td class="owner-cell">${escapeHtml(owners)}</td>
+        <td class="source-cell">${escapeHtml(source)}</td>
+        <td class="evidence-cell">
+          <details class="row-detail">
+            <summary>Open details</summary>
+            <div class="detail-body">
+              <h3>Why it matters</h3>
+              <p>${escapeHtml(row.why)}</p>
+              <span class="confidence">Confidence: ${escapeHtml(row.confidence)}</span>
+              <h3>Repository evidence</h3>
+              ${refList(refs)}
+            </div>
+          </details>
+        </td>
+      </tr>`;
+    }
+
+    const appKeys = ["ad", "ios", "fleet"];
+    const completeCount = rows.filter(row => row.figma === "Complete").length;
+    const progressCount = rows.filter(row => row.figma === "In progress").length;
+    const sharedCount = rows.filter(row => row.shared === "yes").length;
+    const implemented = Object.fromEntries(appKeys.map(key => [
+      key, rows.filter(row => row.apps[key].impl === true).length
+    ]));
+    const adopted = Object.fromEntries(appKeys.map(key => [
+      key, rows.filter(row => row.apps[key].adopted === true).length
+    ]));
+    const unknownChecks = rows.reduce((count, row) =>
+      count + appKeys.filter(key => row.apps[key].adopted === null).length, 0);
+    const unknownEntries = rows.filter(row =>
+      appKeys.some(key => row.apps[key].adopted === null)).length;
+
+    const metrics = [
+      { value: `${completeCount} / ${rows.length}`, label: "Complete", sub: "Supplied design status" },
+      { value: `${progressCount} / ${rows.length}`, label: "In progress", sub: "Supplied scores are provisional" },
+      { value: `${sharedCount} / ${rows.length}`, label: "APIs listed", sub: "Motive Design System 1.0.0 inventory" },
+      { value: `${implemented.ad} / ${rows.length}`, label: "Android Driver · implementation", sub: "Local or app-integrated shared code" },
+      { value: `${implemented.ios} / ${rows.length}`, label: "iOS Driver · implementation", sub: "Local or app-integrated shared code" },
+      { value: `${implemented.fleet} / ${rows.length}`, label: "Android Fleet · implementation", sub: "Local or app-integrated shared code" },
+      { value: `${adopted.ad} / ${rows.length}`, label: "Android Driver · product use", sub: "Verified feature use" },
+      { value: `${adopted.ios} / ${rows.length}`, label: "iOS Driver · product use", sub: "Verified feature use" },
+      { value: `${adopted.fleet} / ${rows.length}`, label: "Android Fleet · product use", sub: "Verified feature use" },
+      { value: `${unknownChecks} / ${rows.length * appKeys.length}`, label: "Unverified product use", sub: `Across ${unknownEntries} of ${rows.length} entries` }
+    ];
+    metrics.push({
+      value: String(additionalCodeRows.length),
+      label: "App-specific code findings",
+      sub: "Outside the supplied Figma list; not a completion count"
+    });
+
+    const metricGroups = [
+      { title: "Design status · supplied", className: "", items: metrics.slice(0, 2) },
+      { title: "Shared system", className: "single", items: metrics.slice(2, 3) },
+      { title: "App code and product use · 19 entries each", className: "apps", items: metrics.slice(3, 9) },
+      { title: "Evidence gaps", className: "single", items: metrics.slice(9, 10) },
+      { title: "Beyond supplied Figma list", className: "single", items: metrics.slice(10) }
+    ];
+    document.getElementById("metrics").innerHTML = metricGroups.map(group => `
+      <section class="metric-group" aria-label="${escapeHtml(group.title)}">
+        <h3>${escapeHtml(group.title)}</h3>
+        <div class="metric-list ${group.className}">
+          ${group.items.map(metric => `
+            <div class="metric">
+              <span class="value">${escapeHtml(metric.value)}</span>
+              <span class="label">${escapeHtml(metric.label)}</span>
+              <span class="sub">${escapeHtml(metric.sub)}</span>
+            </div>`).join("")}
+        </div>
+      </section>`).join("");
+
+    function vizBar(label, value, total, kind) {
+      const percent = total ? Math.max(0, Math.min(100, (value / total) * 100)) : 0;
+      return `<div class="viz-row">
+        <span class="viz-label">${escapeHtml(label)}</span>
+        <div class="viz-track" role="presentation"><div class="viz-fill ${kind}" style="width:${percent}%"></div></div>
+        <span class="viz-value">${value} / ${total}</span>
+      </div>`;
+    }
+
+    const appLabels = { ad: "Android Driver", ios: "iOS Driver", fleet: "Android Fleet" };
+    const visualizations = [
+      {
+        title: "Figma status",
+        subtitle: `Supplied list · ${rows.length} entries`,
+        bars: [
+          vizBar("Done in Figma", completeCount, rows.length, "complete"),
+          vizBar("Not completed", progressCount, rows.length, "progress")
+        ],
+        legend: [["complete", "Complete"], ["progress", "In progress"]]
+      },
+      {
+        title: "Code vs. product use",
+        subtitle: `Repository evidence · counts out of ${rows.length} supplied Figma entries; not telemetry`,
+        bars: appKeys.flatMap(key => [
+          vizBar(`${appLabels[key]} · code`, implemented[key], rows.length, "implementation"),
+          vizBar(`${appLabels[key]} · feature use`, adopted[key], rows.length, "adoption")
+        ]),
+        legend: [["", "Implementation exists"], ["adoption", "Feature use verified"]]
+      },
+      {
+        title: "Shared design-system APIs",
+        subtitle: "Named in the reviewed 1.0.0 inventories · package source not audited",
+        bars: [vizBar("APIs listed for supplied components", sharedCount, rows.length, "shared")],
+        legend: [["shared", "Inventory evidence"]]
+      },
+      {
+        title: "Product-use evidence gaps",
+        subtitle: "Unknown is not absent · checks count each component in each of 3 apps",
+        bars: [
+          vizBar("Unverified app-component checks", unknownChecks, rows.length * appKeys.length, "unknown"),
+          vizBar("Entries with at least one unknown", unknownEntries, rows.length, "unknown")
+        ],
+        legend: [["unknown", "Insufficient evidence"]]
+      }
+    ];
+    document.getElementById("visualizations").innerHTML = visualizations.map(chart => `
+      <article class="viz-card" aria-label="${escapeHtml(chart.title)}">
+        <h3>${escapeHtml(chart.title)}</h3>
+        <p class="viz-subtitle">${escapeHtml(chart.subtitle)}</p>
+        ${chart.bars.join("")}
+        <div class="viz-legend">${chart.legend.map(([kind, label]) => `
+          <span class="viz-key"><span class="viz-swatch ${kind}"></span>${escapeHtml(label)}</span>`).join("")}
+        </div>
+      </article>`).join("");
+
+    document.getElementById("rows").innerHTML = displayRows.map(rowHtml).join("");
+    document.getElementById("table-scope").textContent =
+      `${rows.length} supplied Figma entries + ${additionalCodeRows.length} app-specific code findings (${displayRows.length} table rows). Figma and adoption metrics keep their supplied ${rows.length}-entry denominator.`;
+
+    const search = document.getElementById("search");
+    const statusFilter = document.getElementById("status-filter");
+    const priorityFilter = document.getElementById("priority-filter");
+    const coverageFilter = document.getElementById("coverage-filter");
+    const tbody = document.getElementById("rows");
+    const empty = document.getElementById("empty");
+    const emptyMessage = document.getElementById("empty-message");
+    const resultCount = document.getElementById("result-count");
+    const clearFilters = document.getElementById("clear-filters");
+
+    function applyFilters() {
+      const q = search.value.trim().toLowerCase();
+      let shown = 0;
+      for (const row of tbody.rows) {
+        const visible =
+          (!statusFilter.value || row.dataset.status === statusFilter.value) &&
+          (!priorityFilter.value || row.dataset.priority === priorityFilter.value) &&
+          (!coverageFilter.value || row.dataset.coverage === coverageFilter.value) &&
+          (!q || row.dataset.search.includes(q));
+        row.hidden = !visible;
+        if (visible) shown++;
+      }
+      const hasFilters = Boolean(q || statusFilter.value || priorityFilter.value || coverageFilter.value);
+      empty.style.display = shown ? "none" : "block";
+      emptyMessage.textContent = q
+        ? `No matches for “${search.value.trim()}” with the selected filters.`
+        : "No entries match the selected filters.";
+      clearFilters.hidden = !hasFilters;
+      resultCount.textContent = `Showing ${shown} of ${displayRows.length} entries`;
+    }
+
+    [search, statusFilter, priorityFilter, coverageFilter].forEach(control =>
+      control.addEventListener("input", applyFilters));
+    clearFilters.addEventListener("click", () => {
+      search.value = "";
+      statusFilter.value = "";
+      priorityFilter.value = "";
+      coverageFilter.value = "";
+      applyFilters();
+      search.focus();
+    });
+    applyFilters();
+  </script>
+</body>
+</html>
